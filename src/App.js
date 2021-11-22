@@ -7,15 +7,6 @@ import { Program, Provider, web3 } from '@project-serum/anchor';
 import kp from './keypair.json';
 import MuiAlert from "@material-ui/lab/Alert";
 import { GiphyFetch } from "@giphy/js-fetch-api";
-// import {
-//   Carousel,
-//   Gif,
-//   Grid,
-//   Video,
-//   VideoOverlay
-// } from "@giphy/react-components";
-import Carousel from 'react-images';
-import { ThemeProvider } from '@material-ui/styles';
 import Modal from 'react-modal';
 import FlatList from 'flatlist-react';
 
@@ -95,10 +86,11 @@ const App = () => {
           >
           </form>
           <div className="gif-grid">
-            {/* We use index as the key instead, also, the src is now item.gifLink */}
+            {/* We use index as the key instead, also, the src is now item.gifLink 666*/}
             {gifList.map((item, index) => (
               <div className="gif-item" key={index}>
-                <img src={item.gifLink} />
+                <img src={item.gifLink}/>
+                <div class='image-selected-by'>Selected By: {item.userAddress.toString()}</div>
               </div>
             ))}
           </div>
@@ -251,16 +243,15 @@ const App = () => {
   
   const imageSelected = (e) => {
     console.log('clicked ' + e.currentTarget.src)
-    //666
     sendGif(e.currentTarget.src)
     setModalIsOpen(false)
   }
   
   
-  const renderImage = (item, index) => {
+  const renderGif = (item, index) => {
     return (
       <div class='list-image'>
-        {index+1}: <img src={item.source} onClick={imageSelected} />
+        <img src={item.source} onClick={imageSelected} />
       </div>
     )
   }
@@ -273,6 +264,7 @@ const App = () => {
       const account = await program.account.baseAccount.fetch(baseAccount.publicKey);
       
       console.log("Got the account", account)
+      console.log('xxxxxx ' + JSON.stringify(account.gifList))
       setGifList(account.gifList)
 
     } catch (error) {
@@ -311,7 +303,7 @@ const App = () => {
           >
             <FlatList
               list={fetchedGifs}
-              renderItem={renderImage}
+              renderItem={renderGif}
               renderWhenEmpty={() => <div>List is empty!</div>}
             />
             <button onClick={toggleModal}>Close modal</button>

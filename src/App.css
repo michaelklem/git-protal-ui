@@ -65,9 +65,8 @@
   margin-left: 10px;
 }
 
-
 .get-jeffs-button {
-  background-color:#44ce89;
+  background-color:#35aee2;
   background-size: 200% 200%;
   margin-left: 10px;
 }
@@ -134,4 +133,13 @@
 
 .connected-container button {
   height: 50px;
+}
+
+.image-selected-by {
+  border-radius: 10px;
+  background-color:#35aee2;
+  line-height:2em;
+  margin:6px;
+  padding:6px;
+  color:#333;
 }
