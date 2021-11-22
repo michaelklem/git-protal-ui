@@ -5,18 +5,29 @@ import idl from './idl.json';
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { Program, Provider, web3 } from '@project-serum/anchor';
 import kp from './keypair.json';
+import MuiAlert from "@material-ui/lab/Alert";
+import { GiphyFetch } from "@giphy/js-fetch-api";
+// import {
+//   Carousel,
+//   Gif,
+//   Grid,
+//   Video,
+//   VideoOverlay
+// } from "@giphy/react-components";
+import Carousel from 'react-images';
+import { ThemeProvider } from '@material-ui/styles';
+import Modal from 'react-modal';
+import FlatList from 'flatlist-react';
+
+
+Modal.setAppElement("#root");
+// use @giphy/js-fetch-api to fetch gifs, instantiate with your api key
+const gf = new GiphyFetch('of7F1DUKYYNuLaXLkbwjoefjliF7CcWZ')
+
 
 // Constants
 const TWITTER_HANDLE = '_buildspace';
 const TWITTER_LINK = `https://twitter.com/${TWITTER_HANDLE}`;
-
-const TEST_GIFS = [
-	'https://i.giphy.com/media/eIG0HfouRQJQr1wBzz/giphy.webp',
-	'https://media3.giphy.com/media/L71a8LW2UrKwPaWNYM/giphy.gif?cid=ecf05e47rr9qizx2msjucl1xyvuu47d7kf25tqt2lvo024uo&rid=giphy.gif&ct=g',
-	'https://media4.giphy.com/media/AeFmQjHMtEySooOc8K/giphy.gif?cid=ecf05e47qdzhdma2y3ugn32lkgi972z9mpfzocjj6z1ro4ec&rid=giphy.gif&ct=g',
-	'https://i.giphy.com/media/PAqjdPkJLDsmBRSYUp/giphy.webp'
-]
-
 
 // SystemProgram is a reference to the Solana runtime!
 const { SystemProgram, Keypair } = web3;
@@ -36,12 +47,24 @@ const opts = {
   preflightCommitment: "processed"
 }
 
+function Alert(props) {
+  return <MuiAlert elevation={6} 
+                   variant="filled" {...props} />;
+}
+  
+
 const App = () => {
   // State
   const [walletAddress, setWalletAddress] = useState(null);
-  const [inputValue, setInputValue] = useState('');
   const [gifList, setGifList] = useState([]);
-
+  const [fetchedGifs, setFetchedGifs] = useState([]);
+  const [error, setError] = useState('');
+  const [modalIsOpen, setModalIsOpen] = useState(false)
+  const selectJeffModal = () => {
+    setModalIsOpen(true)
+  }
+  
+  
   const renderConnectedContainer = () => {
     // If we hit this, it means the program account hasn't be initialized.
     if (gifList === null) {
@@ -57,21 +80,19 @@ const App = () => {
     else {
       return(
         <div className="connected-container">
+          <button 
+            onClick={selectJeffModal}
+            type="submit" 
+            className="cta-button get-jeffs-button">
+            Get some Jeffs and select your favorite!
+          </button>
+
           <form
             onSubmit={(event) => {
               event.preventDefault();
               sendGif();
             }}
           >
-            <input
-              type="text"
-              placeholder="Enter gif link!"
-              value={inputValue}
-              onChange={onInputChange}
-            />
-            <button type="submit" className="cta-button submit-gif-button">
-              Submit
-            </button>
           </form>
           <div className="gif-grid">
             {/* We use index as the key instead, also, the src is now item.gifLink */}
@@ -85,33 +106,8 @@ const App = () => {
       )
     }
   }
-  const renderConnectedContainerOld = () => (
-    <div className="connected-container">
-      {/* Go ahead and add this input and button to start */}
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          sendGif();
-        }}
-      >
-        <input 
-          type="text" 
-          placeholder="Enter gif link!" 
-          value={inputValue}
-          onChange={onInputChange}
-        />
-        <button type="submit" className="cta-button submit-gif-button">Submit</button>
-      </form>
-      <div className="gif-grid">
-        {gifList.map((gif) => (
-          <div className="gif-item" key={gif}>
-            <img src={gif} alt={gif} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
+  
   // Actions
   const checkIfWalletIsConnected = async () => {
     try {
@@ -132,7 +128,8 @@ const App = () => {
           setWalletAddress(response.publicKey.toString());
         }
       } else {
-        alert('Solana object not found! Get a Phantom Wallet 👻');
+        setError('Solana object not found! Get a Phantom Wallet 👻')
+
       }
     } catch (error) {
       console.error(error);
@@ -149,13 +146,17 @@ const App = () => {
     }
   };
 
-  const sendGif = async () => {
-    if (inputValue.length === 0) {
-      console.log("No gif link given!")
-      return
-    }
-    console.log('Gif link:', inputValue);
+  const sendGif = async (inputValue) => {
+
+    console.log('Jeff link:', inputValue);
+    
     try {
+      if (! isUnique(inputValue)) {
+        console.log('Link is not unique!')
+        setError('That Jeff has already been submitted. Please select another.')
+        return
+      }
+      
       const provider = getProvider();
       const program = new Program(idl, programID, provider);
 
@@ -165,20 +166,25 @@ const App = () => {
           user: provider.wallet.publicKey,
         },
       });
-      console.log("GIF successfully sent to program", inputValue)
+      console.log("Selected Jeff successfully sent to program", inputValue)
 
       await getGifList();
     } catch (error) {
-      console.log("Error sending GIF:", error)
+      console.log("Error sending Jeff:", error)
     }
   };
 
+  // Returns true if the passed url does not exist in the 
+  const isUnique = (url) => {
+    let isUnique = true
 
-  const onInputChange = (event) => {
-    const { value } = event.target;
-    setInputValue(value);
-  };
+    if (gifList.some(e => e.gifLink === url)) {
+      isUnique = false
+    }
 
+    return isUnique
+  }
+  
   const getProvider = () => {
     const connection = new Connection(network, opts.preflightCommitment);
     const provider = new Provider(
@@ -226,8 +232,42 @@ const App = () => {
     return () => window.removeEventListener('load', onLoad);
   }, []);
 
+  //666
+  const getGifsFromAPI = async() => {
+    const fetchGifs = await gf.search("jeff goldblum", {offset:0, limit: 30 })
+    console.log(`Got ${fetchGifs.data.length} records from giphy.`)
+    let urls = []
+    for(let image of fetchGifs.data) {
+      console.log('image: ' + JSON.stringify(image.images.original.url))
+      const source_url = `https://media2.giphy.com/media/${image.id}/giphy.gif`
+      urls.push({source: source_url})
+    }
+    setFetchedGifs(urls)
+  }
+
+  const toggleModal = () => {
+    setModalIsOpen(! modalIsOpen)
+  }
+  
+  const imageSelected = (e) => {
+    console.log('clicked ' + e.currentTarget.src)
+    //666
+    sendGif(e.currentTarget.src)
+    setModalIsOpen(false)
+  }
+  
+  
+  const renderImage = (item, index) => {
+    return (
+      <div class='list-image'>
+        {index+1}: <img src={item.source} onClick={imageSelected} />
+      </div>
+    )
+  }
+  
   const getGifList = async() => {
     try {
+      getGifsFromAPI()
       const provider = getProvider();
       const program = new Program(idl, programID, provider);
       const account = await program.account.baseAccount.fetch(baseAccount.publicKey);
@@ -243,23 +283,41 @@ const App = () => {
 
   useEffect(() => {
     if (walletAddress) {
-      console.log('Fetching GIF list...');
+      console.log('Fetching Jeffs list...');
       getGifList()
     }
   }, [walletAddress]);
   return (
     <div className="App">
+      {error && 
+        <Alert severity="error">{error}</Alert>
+      }
+
 			{/* This was solely added for some styling fanciness */}
 			<div className={walletAddress ? 'authed-container' : 'container'}>
         <div className="header-container">
-          <p className="header">🖼 GIF Portal</p>
+          <p className="header">The Jeff Goldblum Portal</p>
           <p className="sub-text">
-            View your GIF collection in the metaverse ✨
+            View the selected Jeffs in the metaverse ✨
           </p>
           {/* Add the condition to show this only if we don't have a wallet address */}
           {!walletAddress && renderNotConnectedContainer()}
           {walletAddress && renderConnectedContainer()}
+
+          <Modal
+            isOpen={modalIsOpen}
+            onRequestClose={toggleModal}
+            contentLabel="My dialog"
+          >
+            <FlatList
+              list={fetchedGifs}
+              renderItem={renderImage}
+              renderWhenEmpty={() => <div>List is empty!</div>}
+            />
+            <button onClick={toggleModal}>Close modal</button>
+          </Modal>
         </div>
+
         <div className="footer-container">
           <img alt="Twitter Logo" className="twitter-logo" src={twitterLogo} />
           <a
